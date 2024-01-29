@@ -4,8 +4,8 @@ addEventListener('click', (event) => {
   // console.log(`${frontEndPlayers[socket.id].projectileCount}`)
   frontEndPlayers[socket.id].projectileCount++
   socket.emit('shoot', {
-    x: frontEndPlayers[socket.id].x + Math.sin(frontEndPlayers[socket.id].angle) * 40,
-    y: frontEndPlayers[socket.id].y + Math.cos(frontEndPlayers[socket.id].angle) * 40,
+    x: frontEndPlayers[socket.id].x + Math.sin(frontEndPlayers[socket.id].angle) * 50,
+    y: frontEndPlayers[socket.id].y + Math.cos(frontEndPlayers[socket.id].angle) * 50,
     angle: frontEndPlayers[socket.id].angle
   })
 })

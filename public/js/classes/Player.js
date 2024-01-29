@@ -53,7 +53,7 @@ class Player {
     c.stroke()
 
     c.beginPath()
-    c.rect(this.x - 7, this.y, 14, 40)
+    c.rect(this.x - 7, this.y, 14, 50)
     c.fillStyle = this.color
     c.fill()
 
