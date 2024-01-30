@@ -50,21 +50,13 @@ colliders.push(new CircleCollider(-300, 600, 50))
 let projectileId = 0
 
 function playerFailed(){
-  const divToDelete = document.querySelector(`div[data-id="${id}"]`)
-  divToDelete.parentNode.removeChild(divToDelete)
   document.querySelector('#usernameForm').style.display = 'block'
   delete frontEndPlayer
 }
 // only update position and angle of the players
 function updatePlayers(){
   if(frontEndPlayer){
-    // reset key
-    keys.w.pressd = false
-    keys.a.pressd = false
-    keys.s.pressd = false
-    keys.d.pressd = false
-    document.querySelector('#playerLabels').innerHTML +=
-    `<div data-id="${id}" data-score="${backEndPlayer.score}">${backEndPlayer.username}: ${backEndPlayer.score}</div>`
+    
   }
 }
 

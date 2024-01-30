@@ -9,8 +9,8 @@ addEventListener('click', (event) => {
     radius: 5,
     color: frontEndPlayer.color,
     velocity: {
-      x: SPEED * Math.sin(frontEndPlayer.angle),
-      y: SPEED * Math.cos(frontEndPlayer.angle)
+      x: 10 * Math.sin(frontEndPlayer.angle),
+      y: 10 * Math.cos(frontEndPlayer.angle)
     },
     playerId: 'me'
   })
