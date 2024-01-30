@@ -44,6 +44,9 @@ colliders.push(new RectCollider(-600, 650, 50, 400))
 colliders.push(new RectCollider(-1000, 650, 50, 400))
 colliders.push(new RectCollider(-800, 750, 50, 300))
 
+colliders.push(new RectCollider(-200, -300, 500, 50))
+colliders.push(new RectCollider(-800, -500, 600, 50))
+
 colliders.push(new CircleCollider(-300, 600, 50))
 
 
