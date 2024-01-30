@@ -1,16 +1,14 @@
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
 
-const socket = io()
-
 const devicePixelRatio = window.devicePixelRatio || 1
 
 canvas.width = innerWidth * devicePixelRatio
 canvas.height = innerHeight * devicePixelRatio
 
-const frontEndPlayers = {}
+var frontEndPlayer
 const frontEndProjectiles = {}
-var frontEndChatMessages
+var frontEndChatMessage
 const frontEndChatMessagePool = []
 
 const map = {
@@ -49,107 +47,31 @@ colliders.push(new RectCollider(-800, -500, 600, 50))
 
 colliders.push(new CircleCollider(-300, 600, 50))
 
-
-
-socket.on('connect', () => {
-  socket.emit('initCanvas', {
-    width: canvas.width,
-    height: canvas.height,
-  })
-})
-
 let projectileId = 0
-// only update position of the projectiles
-socket.on('addProjectile', (backEndProjectile) => {
-  frontEndProjectiles[projectileId] = new Projectile({
-    x: backEndProjectile.x,
-    y: backEndProjectile.y,
-    radius: 5,
-    color: frontEndPlayers[backEndProjectile.playerId]?.color,
-    velocity: backEndProjectile.velocity,
-    playerId: backEndProjectile.playerId
-  })
-  projectileId++;
-})
+
+function playerFailed(){
+  const divToDelete = document.querySelector(`div[data-id="${id}"]`)
+  divToDelete.parentNode.removeChild(divToDelete)
+  document.querySelector('#usernameForm').style.display = 'block'
+  delete frontEndPlayer
+}
 // only update position and angle of the players
-socket.on('updatePlayers', (backEndPlayers) => {
-  for(const id in backEndPlayers){
-    const backEndPlayer = backEndPlayers[id]
-
-    if(!frontEndPlayers[id]){
-      frontEndPlayers[id] = new Player({
-        x:backEndPlayer.x,
-        y:backEndPlayer.y,
-        angle: backEndPlayer.angle,
-        color: backEndPlayer.color,
-        username: backEndPlayer.username
-      })
-      // reset key
-      keys.w.pressd = false
-      keys.a.pressd = false
-      keys.s.pressd = false
-      keys.d.pressd = false
-      document.querySelector('#playerLabels').innerHTML +=
-      `<div data-id="${id}" data-score="${backEndPlayer.score}">${backEndPlayer.username}: ${backEndPlayer.score}</div>`
-    } else{
-      document.querySelector(`div[data-id="${id}"]`).innerHTML = `${backEndPlayer.username}: ${backEndPlayer.score}`
-      document.querySelector(`div[data-id="${id}"]`).setAttribute('data-score', backEndPlayer.score)
-      const parenetDiv = document.querySelector('#playerLabels')
-      const childDivs = Array.from(parenetDiv.querySelectorAll('div'))
-      childDivs.sort((a, b) => {
-        return b.getAttribute('data-score') - a.getAttribute('data-score')
-      })
-
-      childDivs.forEach((div) => {
-        parenetDiv.removeChild(div)
-      })
-
-      childDivs.forEach((div) => {
-        parenetDiv.appendChild(div)
-      })
-
-      if(id === socket.id){
-        // if the player is the current player
-
-      } else{
-        // for all other players
-        frontEndPlayers[id].angle = backEndPlayer.angle
-
-        gsap.to(frontEndPlayers[id], {
-          x: backEndPlayer.x,
-          y: backEndPlayer.y,
-          duration: 0.033,
-          ease: 'linear'
-        })
-        
-      }
-    }
+function updatePlayers(){
+  if(frontEndPlayer){
+    // reset key
+    keys.w.pressd = false
+    keys.a.pressd = false
+    keys.s.pressd = false
+    keys.d.pressd = false
+    document.querySelector('#playerLabels').innerHTML +=
+    `<div data-id="${id}" data-score="${backEndPlayer.score}">${backEndPlayer.username}: ${backEndPlayer.score}</div>`
   }
-
-  // delete frontend players
-  for(const id in frontEndPlayers){
-    if(!backEndPlayers[id]){
-      const divToDelete = document.querySelector(`div[data-id="${id}"]`)
-      divToDelete.parentNode.removeChild(divToDelete)
-
-      if(id===socket.id){
-        // if the player is the current player
-        document.querySelector('#usernameForm').style.display = 'block'
-      }
-      delete frontEndPlayers[id]
-    }
-  }
-  //console.log(frontEndPlayers)
-})
-
-socket.on('updateChatMessages', (backEndChatMessages) => {
-  frontEndChatMessages = backEndChatMessages;
-})
+}
 
 let messagePoolTimer
-socket.on('updateChatMessagePool', ({id, inputText}) => {
-  frontEndChatMessagePool.push({id, inputText});
-  document.getElementById("messageList").innerHTML += `\n${frontEndPlayers[id].username}: ${inputText}`;// note: innerText will not parse html tags into text
+function updateChatMessagePool(){
+  frontEndChatMessagePool.push();
+  document.getElementById("messageList").innerHTML += `\n${frontEndPlayer.username}: ${frontEndChatMessage}`;// note: innerText will not parse html tags into text
   document.getElementById("messageList").style.display = "block";
   
   const messageList = document.getElementById("messageList");
@@ -158,7 +80,7 @@ socket.on('updateChatMessagePool', ({id, inputText}) => {
   messagePoolTimer = setTimeout(() => {  
     document.getElementById("messageList").style.display = "none";
   }, 5000);
-})
+}
 
 let animationId
 function animate() {
@@ -166,12 +88,10 @@ function animate() {
     x: 0,
     y: 0
   }
-  for(const id in frontEndPlayers){
-    if(id === socket.id){
-      playerPosition = {
-        x: frontEndPlayers[id].x,
-        y: frontEndPlayers[id].y,
-      }
+  if(frontEndPlayer){
+    playerPosition = {
+      x: frontEndPlayer.x,
+      y: frontEndPlayer.y,
     }
   }
   c.translate(-(playerPosition.x - canvas.width / 2), -(playerPosition.y - canvas.height / 2))
@@ -183,19 +103,15 @@ function animate() {
     const projectile = frontEndProjectiles[id]
     projectile.draw()
   }
-  
-  for(const id in frontEndPlayers){
-    const player = frontEndPlayers[id]
-    player.draw()
+  if(frontEndPlayer){
+    frontEndPlayer.draw()
   }
-
   colliders.forEach(element => {
     element.draw()
   });
 
-  for(const id in frontEndChatMessages){
-    const frontEndChatMessage = frontEndChatMessages[id];
-    frontEndPlayers[id].drawBubbleMessage(frontEndChatMessage);
+  if(frontEndChatMessage){
+    frontEndPlayer.drawBubbleMessage(frontEndChatMessage);
   }
   c.translate((playerPosition.x - canvas.width / 2), (playerPosition.y - canvas.height / 2))
 }
@@ -228,9 +144,10 @@ setInterval(() => {
       y: projectile.y
     }
     projectile.update()
+    updatePlayers()
     // 边界判定（附带碰撞次数判定）
     if(projectile.x < -map.width / 2 || projectile.x > map.width / 2 || projectile.y < -map.height / 2 || projectile.y > map.height / 2 || projectile.collisonCount > projectile.maxCollisonCount){
-      frontEndPlayers[frontEndProjectiles[id].playerId].projectileCount--
+      frontEndPlayer.projectileCount--
       delete frontEndProjectiles[id]
     }
     // 碰撞判定
@@ -249,48 +166,35 @@ setInterval(() => {
         break
       }
     }
-    // 命中判定
-    for(const frontEndPlayerId in frontEndPlayers){
-      const frontEndPlayer = frontEndPlayers[frontEndPlayerId]
-      const distance = Math.hypot(projectile.x - frontEndPlayer.x, projectile.y - frontEndPlayer.y)
-      if(distance < RADIUS){
-        frontEndPlayers[frontEndProjectiles[id].playerId].projectileCount--
-        delete frontEndProjectiles[id]
-        if(frontEndPlayerId === socket.id){
-          socket.emit('hit', projectile.playerId)
-          break
-        }
-      }
+    const distance = Math.hypot(projectile.x - frontEndPlayer.x, projectile.y - frontEndPlayer.y)
+    if(distance < RADIUS){
+      playerFailed()
+      delete frontEndProjectiles[id]
     }
   }
   // update playerInputs
-  if(frontEndPlayers[socket.id]){
+  if(frontEndPlayer){
     const prePosition = {
-      x: frontEndPlayers[socket.id].x,
-      y: frontEndPlayers[socket.id].y,
-      angle: frontEndPlayers[socket.id].angle
+      x: frontEndPlayer.x,
+      y: frontEndPlayer.y,
+      angle: frontEndPlayer.angle
     }
-    frontEndPlayers[socket.id].update(keys)
+    frontEndPlayer.update(keys)
     // 碰撞判定
     colliders.forEach(element => {
-      if(element.isColliding(frontEndPlayers[socket.id].x + 25 * Math.cos(frontEndPlayers[socket.id].angle) - 35 * Math.sin(frontEndPlayers[socket.id].angle),
-      frontEndPlayers[socket.id].y + 25 * Math.sin(frontEndPlayers[socket.id].angle) + 35 * Math.cos(frontEndPlayers[socket.id].angle)) ||
-      element.isColliding(frontEndPlayers[socket.id].x - 25 * Math.cos(frontEndPlayers[socket.id].angle) - 35 * Math.sin(frontEndPlayers[socket.id].angle),
-      frontEndPlayers[socket.id].y - 25 * Math.sin(frontEndPlayers[socket.id].angle) + 35 * Math.cos(frontEndPlayers[socket.id].angle)) ||
-      element.isColliding(frontEndPlayers[socket.id].x + 25 * Math.cos(frontEndPlayers[socket.id].angle) + 35 * Math.sin(frontEndPlayers[socket.id].angle),
-      frontEndPlayers[socket.id].y + 25 * Math.sin(frontEndPlayers[socket.id].angle) - 35 * Math.cos(frontEndPlayers[socket.id].angle)) ||
-      element.isColliding(frontEndPlayers[socket.id].x - 25 * Math.cos(frontEndPlayers[socket.id].angle) + 35 * Math.sin(frontEndPlayers[socket.id].angle),
-      frontEndPlayers[socket.id].y - 25 * Math.sin(frontEndPlayers[socket.id].angle) - 35 * Math.cos(frontEndPlayers[socket.id].angle)))
+      if(element.isColliding(frontEndPlayer.x + 25 * Math.cos(frontEndPlayer.angle) - 35 * Math.sin(frontEndPlayer.angle),
+      frontEndPlayer.y + 25 * Math.sin(frontEndPlayer.angle) + 35 * Math.cos(frontEndPlayer.angle)) ||
+      element.isColliding(frontEndPlayer.x - 25 * Math.cos(frontEndPlayer.angle) - 35 * Math.sin(frontEndPlayer.angle),
+      frontEndPlayer.y - 25 * Math.sin(frontEndPlayer.angle) + 35 * Math.cos(frontEndPlayer.angle)) ||
+      element.isColliding(frontEndPlayer.x + 25 * Math.cos(frontEndPlayer.angle) + 35 * Math.sin(frontEndPlayer.angle),
+      frontEndPlayer.y + 25 * Math.sin(frontEndPlayer.angle) - 35 * Math.cos(frontEndPlayer.angle)) ||
+      element.isColliding(frontEndPlayer.x - 25 * Math.cos(frontEndPlayer.angle) + 35 * Math.sin(frontEndPlayer.angle),
+      frontEndPlayer.y - 25 * Math.sin(frontEndPlayer.angle) - 35 * Math.cos(frontEndPlayer.angle)))
       {
-        frontEndPlayers[socket.id].x = prePosition.x
-        frontEndPlayers[socket.id].y = prePosition.y
-        frontEndPlayers[socket.id].angle = prePosition.angle
+        frontEndPlayer.x = prePosition.x
+        frontEndPlayer.y = prePosition.y
+        frontEndPlayer.angle = prePosition.angle
       }
-    })
-    socket.emit('updatePlayers', {
-      x: frontEndPlayers[socket.id].x,
-      y: frontEndPlayers[socket.id].y,
-      angle: frontEndPlayers[socket.id].angle
     })
   }
 }, 33)

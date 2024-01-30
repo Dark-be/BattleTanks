@@ -1,18 +1,25 @@
 addEventListener('click', (event) => {
-  if(!frontEndPlayers[socket.id]) return
-  if(frontEndPlayers[socket.id].projectileCount >= frontEndPlayers[socket.id].maxProjectileCount) return
-  // console.log(`${frontEndPlayers[socket.id].projectileCount}`)
-  frontEndPlayers[socket.id].projectileCount++
-  socket.emit('shoot', {
-    x: frontEndPlayers[socket.id].x + Math.sin(frontEndPlayers[socket.id].angle) * 50,
-    y: frontEndPlayers[socket.id].y + Math.cos(frontEndPlayers[socket.id].angle) * 50,
-    angle: frontEndPlayers[socket.id].angle
+  if(!frontEndPlayer) return
+  if(frontEndPlayer.projectileCount >= frontEndPlayer.maxProjectileCount) return
+
+  frontEndPlayer.projectileCount++
+  frontEndProjectiles[projectileId] = new Projectile({
+    x: frontEndPlayer.x + Math.sin(frontEndPlayer.angle) * 50,
+    y: frontEndPlayer.y + Math.cos(frontEndPlayer.angle) * 50,
+    radius: 5,
+    color: frontEndPlayer.color,
+    velocity: {
+      x: SPEED * Math.sin(frontEndPlayer.angle),
+      y: SPEED * Math.cos(frontEndPlayer.angle)
+    },
+    playerId: 'me'
   })
+  projectileId++;
 })
 
 let inputing = false;
 window.addEventListener('keydown', (event) => {
-  if(frontEndPlayers[socket.id]){
+  if(frontEndPlayer){
     if(!inputing){
       switch(event.code){
         case 'KeyW':
@@ -39,8 +46,8 @@ window.addEventListener('keydown', (event) => {
         } else{
           var inputText = document.getElementById("textInput").value;
           if(inputText.length > 0){
-            // console.log("Input:" + inputText);
-            socket.emit('chatPublic', inputText);
+            frontEndChatMessage = inputText
+            updateChatMessagePool()
           }
           document.getElementById("textInput").style.display = "none";
           document.getElementById("textInput").value = "";
@@ -58,7 +65,7 @@ window.addEventListener('keydown', (event) => {
 })
 
 window.addEventListener('keyup', (event) => {
-  if(frontEndPlayers[socket.id]){
+  if(frontEndPlayer){
     switch(event.code){
       case 'KeyW':
         keys.w.pressd = false
@@ -82,10 +89,12 @@ document.querySelector('#usernameForm').addEventListener('submit', (event) => {
     return
   }
   document.querySelector('#usernameForm').style.display = 'none'
-  const username = document.querySelector('#usernameInput').value
-  socket.emit('initGame', {
-    username,
-    width: canvas.width,
-    height: canvas.height
+  const playerColor = Math.random() * 360
+  frontEndPlayer = new Player({
+    x:innerWidth * Math.random(),
+    y:innerHeight * Math.random(),
+    angle: 0,
+    color: `hsl(${playerColor}, 100%, 50%)`,
+    username: document.querySelector('#usernameInput').value
   })
 })
