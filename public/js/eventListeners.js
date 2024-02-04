@@ -91,8 +91,8 @@ document.querySelector('#usernameForm').addEventListener('submit', (event) => {
   document.querySelector('#usernameForm').style.display = 'none'
   const playerColor = Math.random() * 360
   frontEndPlayer = new Player({
-    x:innerWidth * Math.random(),
-    y:innerHeight * Math.random(),
+    x:500 * Math.random()+1000,
+    y:500 * Math.random(),
     angle: 0,
     color: `hsl(${playerColor}, 100%, 50%)`,
     username: document.querySelector('#usernameInput').value
